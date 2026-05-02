@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ClipboardList,
   ArrowRight,
+  Trash2,
   FolderKanban,
   LogOut,
   Lock,
@@ -63,6 +64,7 @@ function App() {
   const [taskForm, setTaskForm] = useState(emptyTaskForm);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState("");
 
   const isAdmin = auth?.user?.role === "admin";
 
@@ -116,7 +118,9 @@ function App() {
 
   async function handleAuth(event) {
     event.preventDefault();
+    if (actionLoading) return;
     setMessage("");
+    setActionLoading("auth");
     try {
       const path = authMode === "login" ? "/auth/login" : "/auth/signup";
       const payload =
@@ -131,6 +135,8 @@ function App() {
       setAuth(data);
     } catch (error) {
       setMessage(error.message);
+    } finally {
+      setActionLoading("");
     }
   }
 
@@ -156,7 +162,9 @@ function App() {
 
   async function createProject(event) {
     event.preventDefault();
+    if (actionLoading) return;
     setMessage("");
+    setActionLoading("project");
     try {
       await api("/projects", {
         method: "POST",
@@ -166,12 +174,16 @@ function App() {
       await loadData();
     } catch (error) {
       setMessage(error.message);
+    } finally {
+      setActionLoading("");
     }
   }
 
   async function createTask(event) {
     event.preventDefault();
+    if (actionLoading) return;
     setMessage("");
+    setActionLoading("task");
     try {
       await api("/tasks", {
         method: "POST",
@@ -181,11 +193,15 @@ function App() {
       await loadData();
     } catch (error) {
       setMessage(error.message);
+    } finally {
+      setActionLoading("");
     }
   }
 
   async function updateTaskStatus(taskId, status) {
+    if (actionLoading) return;
     setMessage("");
+    setActionLoading(`status-${taskId}`);
     try {
       await api(`/tasks/${taskId}`, {
         method: "PUT",
@@ -194,6 +210,27 @@ function App() {
       await loadData();
     } catch (error) {
       setMessage(error.message);
+    } finally {
+      setActionLoading("");
+    }
+  }
+
+  async function deleteTask(taskId) {
+    if (actionLoading) return;
+    const confirmed = window.confirm("Delete this task?");
+    if (!confirmed) return;
+
+    setMessage("");
+    setActionLoading(`delete-${taskId}`);
+    try {
+      await api(`/tasks/${taskId}`, {
+        method: "DELETE"
+      });
+      await loadData();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setActionLoading("");
     }
   }
 
@@ -323,7 +360,11 @@ function App() {
               </div>
             </div>
             <button className="primary-button" type="submit">
-              {authMode === "login" ? "Login" : "Create account"}
+              {actionLoading === "auth"
+                ? "Please wait..."
+                : authMode === "login"
+                  ? "Login"
+                  : "Create account"}
               <ArrowRight size={18} />
             </button>
             <p className="auth-note">
@@ -412,8 +453,8 @@ function App() {
                   ))}
                 </div>
               </div>
-              <button className="primary-button" type="submit">
-                Create project
+              <button className="primary-button" type="submit" disabled={actionLoading === "project"}>
+                {actionLoading === "project" ? "Creating..." : "Create project"}
               </button>
             </form>
           </div>
@@ -480,8 +521,8 @@ function App() {
                   placeholder="Task details"
                 />
               </label>
-              <button className="primary-button" type="submit">
-                Create task
+              <button className="primary-button" type="submit" disabled={actionLoading === "task"}>
+                {actionLoading === "task" ? "Creating..." : "Create task"}
               </button>
             </form>
           </div>
@@ -548,14 +589,29 @@ function App() {
                       {new Date(task.dueDate).toLocaleDateString()}
                     </small>
                   </div>
-                  <select
-                    value={task.status}
-                    onChange={(event) => updateTaskStatus(task._id, event.target.value)}
-                  >
-                    <option value="todo">Todo</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
-                  </select>
+                  <div className="task-actions">
+                    <select
+                      value={task.status}
+                      disabled={actionLoading === `status-${task._id}`}
+                      onChange={(event) => updateTaskStatus(task._id, event.target.value)}
+                    >
+                      <option value="todo">Todo</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="done">Done</option>
+                    </select>
+                    {isAdmin && (
+                      <button
+                        className="delete-button"
+                        type="button"
+                        disabled={actionLoading === `delete-${task._id}`}
+                        onClick={() => deleteTask(task._id)}
+                        title="Delete task"
+                      >
+                        <Trash2 size={17} />
+                        {actionLoading === `delete-${task._id}` ? "Deleting" : "Delete"}
+                      </button>
+                    )}
+                  </div>
                 </article>
               );
             })}
