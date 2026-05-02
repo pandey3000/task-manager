@@ -127,14 +127,4 @@ npm run build
 npm start
 ```
 
-5. Open the generated Railway URL and test signup, project creation, task assignment, and member status updates.
 
-## Demo Video Flow
-
-1. Signup as an admin.
-2. Signup as a member in another browser or after logout.
-3. Login as admin and create a project.
-4. Add the member to the project.
-5. Create and assign a task.
-6. Login as member and update task status.
-7. Show dashboard changes and overdue/task counts.
