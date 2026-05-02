@@ -332,6 +332,44 @@ textarea:focus {
   min-height: 52px;
 }
 
+.demo-login {
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.demo-login > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.demo-login div {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.demo-login button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.demo-login button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .auth-note {
   color: #657382;
   font-size: 0.82rem;

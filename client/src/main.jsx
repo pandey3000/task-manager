@@ -30,6 +30,18 @@ const emptyTaskForm = {
   dueDate: "",
   status: "todo"
 };
+const demoAccounts = {
+  admin: {
+    label: "Use Admin Demo",
+    email: "Shubhamcuchd@gmail.com",
+    password: "Shubham"
+  },
+  member: {
+    label: "Use Member Demo",
+    email: "Anand@gmail.com",
+    password: "123456"
+  }
+};
 
 function App() {
   const [auth, setAuth] = useState(() => {
@@ -120,6 +132,17 @@ function App() {
     } catch (error) {
       setMessage(error.message);
     }
+  }
+
+  function useDemoAccount(type) {
+    const account = demoAccounts[type];
+    setAuthMode("login");
+    setAuthForm({
+      name: "",
+      email: account.email,
+      password: account.password
+    });
+    setMessage("");
   }
 
   function logout() {
@@ -288,6 +311,17 @@ function App() {
             </label>
 
             {message && <p className="message error">{message}</p>}
+            <div className="demo-login">
+              <span>Demo access</span>
+              <div>
+                <button type="button" onClick={() => useDemoAccount("admin")}>
+                  {demoAccounts.admin.label}
+                </button>
+                <button type="button" onClick={() => useDemoAccount("member")}>
+                  {demoAccounts.member.label}
+                </button>
+              </div>
+            </div>
             <button className="primary-button" type="submit">
               {authMode === "login" ? "Login" : "Create account"}
               <ArrowRight size={18} />
