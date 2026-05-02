@@ -2,6 +2,9 @@
   "name": "team-task-manager",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "workspaces": [
     "server",
     "client"
@@ -13,8 +16,5 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
-  },
-  "dependencies": {
-    "mongodb": "^7.2.0"
   }
 }

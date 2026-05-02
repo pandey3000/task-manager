@@ -111,6 +111,7 @@ Dashboard:
 
 1. Push this project to GitHub.
 2. Create a new Railway project from the GitHub repo.
+3. Deploy from the repository root, not from only the `client` folder.
 3. Add these environment variables in Railway:
 
 ```env
@@ -122,7 +123,6 @@ NODE_ENV=production
 4. Railway will run:
 
 ```bash
-npm install
 npm run build
 npm start
 ```
