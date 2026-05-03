@@ -35,6 +35,31 @@ const taskSchema = new mongoose.Schema(
     dueDate: {
       type: Date,
       required: [true, "Due date is required"]
+    },
+    issue: {
+      message: {
+        type: String,
+        trim: true,
+        default: ""
+      },
+      status: {
+        type: String,
+        enum: ["none", "open", "resolved"],
+        default: "none"
+      },
+      reportedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+      },
+      reportedAt: {
+        type: Date,
+        default: null
+      },
+      resolvedAt: {
+        type: Date,
+        default: null
+      }
     }
   },
   { timestamps: true }

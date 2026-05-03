@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   ClipboardList,
   ArrowRight,
+  AlertTriangle,
+  MessageSquareWarning,
   Trash2,
   FolderKanban,
   LogOut,
@@ -62,6 +64,7 @@ function App() {
   const [users, setUsers] = useState([]);
   const [projectForm, setProjectForm] = useState(emptyProjectForm);
   const [taskForm, setTaskForm] = useState(emptyTaskForm);
+  const [issueForms, setIssueForms] = useState({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
@@ -225,6 +228,46 @@ function App() {
     try {
       await api(`/tasks/${taskId}`, {
         method: "DELETE"
+      });
+      await loadData();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setActionLoading("");
+    }
+  }
+
+  async function reportIssue(taskId) {
+    if (actionLoading) return;
+    const issueMessage = issueForms[taskId]?.trim();
+    if (!issueMessage) {
+      setMessage("Please enter an issue message first");
+      return;
+    }
+
+    setMessage("");
+    setActionLoading(`issue-${taskId}`);
+    try {
+      await api(`/tasks/${taskId}/issue`, {
+        method: "POST",
+        body: JSON.stringify({ message: issueMessage })
+      });
+      setIssueForms((current) => ({ ...current, [taskId]: "" }));
+      await loadData();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setActionLoading("");
+    }
+  }
+
+  async function resolveIssue(taskId) {
+    if (actionLoading) return;
+    setMessage("");
+    setActionLoading(`resolve-${taskId}`);
+    try {
+      await api(`/tasks/${taskId}/issue/resolve`, {
+        method: "PUT"
       });
       await loadData();
     } catch (error) {
@@ -409,6 +452,7 @@ function App() {
         <Metric icon={<ClipboardList />} label="Tasks" value={dashboard?.totalTasks || 0} />
         <Metric icon={<CalendarClock />} label="In Progress" value={dashboard?.inProgressTasks || 0} />
         <Metric icon={<CheckCircle2 />} label="Done" value={dashboard?.doneTasks || 0} />
+        <Metric icon={<AlertTriangle />} label="Open Issues" value={dashboard?.openIssues || 0} />
       </section>
 
       <section className="workspace-grid">
@@ -576,18 +620,65 @@ function App() {
             {tasks.length === 0 && <p className="muted">No tasks yet.</p>}
             {tasks.map((task) => {
               const overdue = task.status !== "done" && new Date(task.dueDate) < new Date();
+              const hasOpenIssue = task.issue?.status === "open";
+              const hasResolvedIssue = task.issue?.status === "resolved";
               return (
                 <article className="task-item" key={task._id}>
-                  <div>
+                  <div className="task-content">
                     <div className="task-title-row">
                       <h3>{task.title}</h3>
                       {overdue && <span className="badge danger">Overdue</span>}
+                      {hasOpenIssue && <span className="badge warning">Issue Open</span>}
+                      {hasResolvedIssue && <span className="badge resolved">Issue Resolved</span>}
                     </div>
                     <p>{task.description || "No description"}</p>
                     <small>
                       {task.project?.name} - {task.assignedTo?.name} - Due{" "}
                       {new Date(task.dueDate).toLocaleDateString()}
                     </small>
+                    {task.issue?.message && (
+                      <div className={`issue-box ${hasResolvedIssue ? "resolved" : ""}`}>
+                        <div>
+                          <MessageSquareWarning size={17} />
+                          <strong>{hasResolvedIssue ? "Resolved issue" : "Reported issue"}</strong>
+                        </div>
+                        <p>{task.issue.message}</p>
+                        <small>
+                          Reported by {task.issue.reportedBy?.name || task.assignedTo?.name} on{" "}
+                          {task.issue.reportedAt
+                            ? new Date(task.issue.reportedAt).toLocaleDateString()
+                            : "N/A"}
+                        </small>
+                        {isAdmin && hasOpenIssue && (
+                          <button
+                            className="resolve-button"
+                            type="button"
+                            disabled={actionLoading === `resolve-${task._id}`}
+                            onClick={() => resolveIssue(task._id)}
+                          >
+                            {actionLoading === `resolve-${task._id}` ? "Resolving..." : "Mark resolved"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {!isAdmin && !hasOpenIssue && (
+                      <div className="issue-form">
+                        <textarea
+                          value={issueForms[task._id] || ""}
+                          onChange={(event) =>
+                            setIssueForms({ ...issueForms, [task._id]: event.target.value })
+                          }
+                          placeholder="Report a blocker or issue to admin"
+                        />
+                        <button
+                          type="button"
+                          disabled={actionLoading === `issue-${task._id}`}
+                          onClick={() => reportIssue(task._id)}
+                        >
+                          {actionLoading === `issue-${task._id}` ? "Reporting..." : "Report issue"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="task-actions">
                     <select

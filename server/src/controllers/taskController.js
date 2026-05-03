@@ -13,13 +13,17 @@ function taskQueryFor(user) {
   return { assignedTo: user._id };
 }
 
+function populateTaskQuery(query) {
+  return query
+    .populate("project", "name")
+    .populate("assignedTo", "name email role")
+    .populate("createdBy", "name email role")
+    .populate("issue.reportedBy", "name email role");
+}
+
 export async function getTasks(req, res, next) {
   try {
-    const tasks = await Task.find(taskQueryFor(req.user))
-      .populate("project", "name")
-      .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email role")
-      .sort({ dueDate: 1 });
+    const tasks = await populateTaskQuery(Task.find(taskQueryFor(req.user))).sort({ dueDate: 1 });
 
     res.json(tasks);
   } catch (error) {
@@ -58,7 +62,8 @@ export async function createTask(req, res, next) {
     const populated = await task.populate([
       { path: "project", select: "name" },
       { path: "assignedTo", select: "name email role" },
-      { path: "createdBy", select: "name email role" }
+      { path: "createdBy", select: "name email role" },
+      { path: "issue.reportedBy", select: "name email role" }
     ]);
 
     res.status(201).json(populated);
@@ -102,7 +107,73 @@ export async function updateTask(req, res, next) {
     const populated = await task.populate([
       { path: "project", select: "name" },
       { path: "assignedTo", select: "name email role" },
-      { path: "createdBy", select: "name email role" }
+      { path: "createdBy", select: "name email role" },
+      { path: "issue.reportedBy", select: "name email role" }
+    ]);
+
+    res.json(populated);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function reportTaskIssue(req, res, next) {
+  try {
+    const { message } = req.body;
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const isAssignedMember = String(task.assignedTo) === String(req.user._id);
+    if (req.user.role !== "admin" && !isAssignedMember) {
+      return res.status(403).json({ message: "You can report issues only for your assigned tasks" });
+    }
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: "Issue message is required" });
+    }
+
+    task.issue = {
+      message: message.trim(),
+      status: "open",
+      reportedBy: req.user._id,
+      reportedAt: new Date(),
+      resolvedAt: null
+    };
+
+    await task.save();
+    const populated = await task.populate([
+      { path: "project", select: "name" },
+      { path: "assignedTo", select: "name email role" },
+      { path: "createdBy", select: "name email role" },
+      { path: "issue.reportedBy", select: "name email role" }
+    ]);
+
+    res.json(populated);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resolveTaskIssue(req, res, next) {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    task.issue.status = "resolved";
+    task.issue.resolvedAt = new Date();
+
+    await task.save();
+    const populated = await task.populate([
+      { path: "project", select: "name" },
+      { path: "assignedTo", select: "name email role" },
+      { path: "createdBy", select: "name email role" },
+      { path: "issue.reportedBy", select: "name email role" }
     ]);
 
     res.json(populated);
